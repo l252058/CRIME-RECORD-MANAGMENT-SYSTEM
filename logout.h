@@ -23,7 +23,7 @@ public:
 
         Card *popupCard = new Card(560, 320, 480, 260, this);
 
-        QLabel *icon = new QLabel("?", this);
+        QLabel *icon = new QLabel("⚠", this);
         icon->setGeometry(560, 348, 480, 44);
         icon->setAlignment(Qt::AlignCenter);
         icon->setStyleSheet
