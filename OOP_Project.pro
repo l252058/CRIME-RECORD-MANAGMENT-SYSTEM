@@ -1,4 +1,4 @@
-QT       += core gui widgets
+QT       += core gui widgets multimedia
 
 CONFIG   += c++17
 
@@ -8,21 +8,23 @@ HEADERS  += common.h        \
             Interface1.h    \
             Interface2.h    \
             adminMenu.h     \
+            adminReport.h \
+            myReport.h \
+            submitReport.h \
             userMenu.h      \
             crimeRecords.h  \
             crimeStatus.h   \
             court.h         \
-            officer.h       \
             reports.h       \
-            logs.h          \
+            activityLog.h   \
             profile.h       \
             logout.h        \
-            file.h \
-            validity.h
+            file.h          \
+            validity.h      \
+            officer.h
 
 DISTFILES += \
     backgroundOne.png   \
     backgroundTwo.png   \
     backgroundThree.png \
     backgroundFour.png
-
