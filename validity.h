@@ -1,627 +1,278 @@
 #ifndef VALIDITY_H
 #define VALIDITY_H
 
-// ─────────────────────────────────────────
-//  CHAR UTILS CLASS
-// ─────────────────────────────────────────
+#include <cstring>
+#include <QString>
+#include <QWidget>
+#include <QLabel>
+#include <QLineEdit>
+#include <QList>
+#include <functional>
+#include <QTimer>
+#include <QVBoxLayout>
 
-class CharUtils
+#ifndef MONO_FONT
+#define MONO_FONT "font-family: 'Consolas', 'Monaco', 'Courier New', monospace;"
+#endif
+
+// ── Base Validator Classes ───────────────────────────────────────────────────
+
+class Validator
 {
-public:
+protected:
+    char* message = nullptr;
 
-    static int length(const char* inputString)
+    void setMsg(const char* m)
     {
-        int count = 0;
-        while (inputString[count] != '\0')
-        {
-            count++;
-        }
-        return count;
-    }
-
-    static void copy(char* destinationBuffer, const char* sourceString)
-    {
-        int index = 0;
-        while (sourceString[index] != '\0')
-        {
-            destinationBuffer[index] = sourceString[index];
-            index++;
-        }
-        destinationBuffer[index] = '\0';
-    }
-
-    static void append(char* destinationBuffer, const char* sourceString)
-    {
-        int destinationEnd = length(destinationBuffer);
-        int sourceIndex    = 0;
-
-        while (sourceString[sourceIndex] != '\0')
-        {
-            destinationBuffer[destinationEnd] = sourceString[sourceIndex];
-            destinationEnd++;
-            sourceIndex++;
-        }
-        destinationBuffer[destinationEnd] = '\0';
-    }
-
-    static bool endsWith(const char* inputString, const char* suffix)
-    {
-        int stringLength = length(inputString);
-        int suffixLength = length(suffix);
-
-        if (stringLength < suffixLength)
-        {
-            return false;
-        }
-
-        int startIndex = stringLength - suffixLength;
-
-        for (int index = 0; index < suffixLength; index++)
-        {
-            if (inputString[startIndex + index] != suffix[index])
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    static bool isLetter(char inputChar)
-    {
-        return (inputChar >= 'a' && inputChar <= 'z')
-        || (inputChar >= 'A' && inputChar <= 'Z');
-    }
-
-    static bool isDigit(char inputChar)
-    {
-        return inputChar >= '0' && inputChar <= '9';
-    }
-
-    static bool isUppercase(char inputChar)
-    {
-        return inputChar >= 'A' && inputChar <= 'Z';
-    }
-
-    static bool isAlphanumeric(char inputChar)
-    {
-        return isLetter(inputChar) || isDigit(inputChar);
-    }
-
-    static void intToChars(char* outputBuffer, int inputNumber)
-    {
-        if (inputNumber == 0)
-        {
-            outputBuffer[0] = '0';
-            outputBuffer[1] = '\0';
-            return;
-        }
-
-        char reverseBuffer[32];
-        int  reverseIndex = 0;
-
-        while (inputNumber > 0)
-        {
-            reverseBuffer[reverseIndex] = '0' + (inputNumber % 10);
-            reverseIndex++;
-            inputNumber /= 10;
-        }
-
-        int forwardIndex = 0;
-        while (reverseIndex > 0)
-        {
-            outputBuffer[forwardIndex] = reverseBuffer[--reverseIndex];
-            forwardIndex++;
-        }
-        outputBuffer[forwardIndex] = '\0';
-    }
-};
-
-
-// ─────────────────────────────────────────
-//  EMAIL VALIDATOR CLASS
-// ─────────────────────────────────────────
-
-class EmailValidator
-{
-private:
-
-    char emailAddress[256];
-    char validationMessage[256];
-    bool isEmailValid;
-
-    bool hasAtSymbol()
-    {
-        for (int index = 0; emailAddress[index] != '\0'; index++)
-        {
-            if (emailAddress[index] == '@')
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    int findAtSymbolIndex()
-    {
-        for (int index = 0; emailAddress[index] != '\0'; index++)
-        {
-            if (emailAddress[index] == '@')
-            {
-                return index;
-            }
-        }
-        return -1;
-    }
-
-    bool hasCharactersBeforeAt()
-    {
-        return findAtSymbolIndex() > 0;
-    }
-
-    bool domainHasDot()
-    {
-        int          atIndex    = findAtSymbolIndex();
-        const char*  domainPart = emailAddress + atIndex + 1;
-
-        for (int index = 0; domainPart[index] != '\0'; index++)
-        {
-            if (domainPart[index] == '.')
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool hasValidEnding()
-    {
-        const char* validEndings[] = { ".com", ".net", ".org", ".edu", ".pk", nullptr };
-
-        for (int index = 0; validEndings[index] != nullptr; index++)
-        {
-            if (CharUtils::endsWith(emailAddress, validEndings[index]))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool hasNoSpaces()
-    {
-        for (int index = 0; emailAddress[index] != '\0'; index++)
-        {
-            if (emailAddress[index] == ' ')
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    bool localPartIsValid()
-    {
-        int atIndex = findAtSymbolIndex();
-
-        for (int index = 0; index < atIndex; index++)
-        {
-            char currentChar = emailAddress[index];
-
-            bool isAllowed = CharUtils::isAlphanumeric(currentChar)
-                             || currentChar == '.'
-                             || currentChar == '_'
-                             || currentChar == '%'
-                             || currentChar == '+'
-                             || currentChar == '-';
-
-            if (!isAllowed)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    bool domainPartIsValid()
-    {
-        int         atIndex    = findAtSymbolIndex();
-        const char* domainPart = emailAddress + atIndex + 1;
-
-        for (int index = 0; domainPart[index] != '\0'; index++)
-        {
-            char currentChar = domainPart[index];
-
-            bool isAllowed = CharUtils::isAlphanumeric(currentChar)
-                             || currentChar == '.'
-                             || currentChar == '-';
-
-            if (!isAllowed)
-            {
-                return false;
-            }
-        }
-        return true;
+        delete[] message;
+        message = new char[strlen(m) + 1];
+        strncpy(message, m, strlen(m) + 1);
     }
 
 public:
-
-    EmailValidator()
-    {
-        emailAddress[0]      = '\0';
-        validationMessage[0] = '\0';
-        isEmailValid         = false;
-    }
-
-    void setEmail(const char* inputEmail)
-    {
-        CharUtils::copy(emailAddress, inputEmail);
-        isEmailValid         = false;
-        validationMessage[0] = '\0';
-    }
-
-    bool validate()
-    {
-        if (emailAddress[0] == '\0')
-        {
-            CharUtils::copy(validationMessage, "Email cannot be empty.");
-            isEmailValid = false;
-            return false;
-        }
-
-        if (!hasAtSymbol())
-        {
-            CharUtils::copy(validationMessage, "Email must contain '@'.");
-            isEmailValid = false;
-            return false;
-        }
-
-        if (!hasCharactersBeforeAt())
-        {
-            CharUtils::copy(validationMessage, "Email must have characters before '@'.");
-            isEmailValid = false;
-            return false;
-        }
-
-        if (!domainHasDot())
-        {
-            CharUtils::copy(validationMessage, "Email domain must contain a dot (e.g. gmail.com).");
-            isEmailValid = false;
-            return false;
-        }
-
-        if (!hasValidEnding())
-        {
-            CharUtils::copy(validationMessage, "Email must end with .com / .net / .org / .edu / .pk");
-            isEmailValid = false;
-            return false;
-        }
-
-        if (!hasNoSpaces())
-        {
-            CharUtils::copy(validationMessage, "Email must not contain spaces.");
-            isEmailValid = false;
-            return false;
-        }
-
-        if (!localPartIsValid())
-        {
-            CharUtils::copy(validationMessage, "Email local part contains invalid characters.");
-            isEmailValid = false;
-            return false;
-        }
-
-        if (!domainPartIsValid())
-        {
-            CharUtils::copy(validationMessage, "Email domain contains invalid characters.");
-            isEmailValid = false;
-            return false;
-        }
-
-        CharUtils::copy(validationMessage, "Email is valid.");
-        isEmailValid = true;
-        return true;
-    }
-
-    bool        getIsValid() const { return isEmailValid;      }
-    const char* getMessage() const { return validationMessage; }
+    Validator() { setMsg(""); }
+    virtual ~Validator() { delete[] message; }
+    virtual bool validate() = 0;
+    const char* getMessage() const { return message; }
 };
 
-
-// ─────────────────────────────────────────
-//  PASSWORD VALIDATOR CLASS
-// ─────────────────────────────────────────
-
-class PasswordValidator
+class EmailValidator : public Validator
 {
 private:
-
-    char passwordText[256];
-    char validationMessage[512];
-    char issuesCollected[512];
-    bool isPasswordValid;
-    int  strengthScore;
-
-    void appendIssue(const char* issueMessage)
+    char* email = nullptr;
+public:
+    ~EmailValidator() { delete[] email; }
+    void setEmail(const char* input)
     {
-        if (issuesCollected[0] != '\0')
-        {
-            CharUtils::append(issuesCollected, "\n");
-        }
-        CharUtils::append(issuesCollected, issueMessage);
+        delete[] email;
+        if (input) {
+            email = new char[strlen(input) + 1];
+            strncpy(email, input, strlen(input) + 1);
+        } else email = nullptr;
+        setMsg("");
     }
-
-    bool meetsMinimumLength()
+    bool validate() override
     {
-        return CharUtils::length(passwordText) >= 8;
-    }
-
-    bool hasUppercaseLetter()
-    {
-        for (int index = 0; passwordText[index] != '\0'; index++)
-        {
-            if (CharUtils::isUppercase(passwordText[index]))
-            {
-                return true;
-            }
+        if (!email || strlen(email) == 0) { setMsg("Email is empty."); return false; }
+        if (!strchr(email, '@')) { setMsg("Missing '@' symbol."); return false; }
+        int len = strlen(email);
+        if (len < 5 || (strcmp(email + len - 4, ".com") != 0 && strcmp(email + len - 4, ".net") != 0)) {
+            setMsg("Email must end with .com or .net"); return false;
         }
+        setMsg("Valid Email"); return true;
+    }
+};
+
+class PasswordValidator : public Validator
+{
+private:
+    char* pass = nullptr;
+public:
+    ~PasswordValidator() { delete[] pass; }
+    void setPassword(const char* input)
+    {
+        delete[] pass;
+        if (input) {
+            pass = new char[strlen(input) + 1];
+            strncpy(pass, input, strlen(input) + 1);
+        } else pass = nullptr;
+        setMsg("");
+    }
+    bool validate() override
+    {
+        if (!pass || strlen(pass) < 8) { setMsg("Password must be at least 8 characters."); return false; }
+        bool hasUpper = false, hasDigit = false;
+        for (int i = 0; pass[i] != '\0'; i++) {
+            if (pass[i] >= 'A' && pass[i] <= 'Z') hasUpper = true;
+            if (pass[i] >= '0' && pass[i] <= '9') hasDigit = true;
+        }
+        if (!hasUpper) { setMsg("Must have at least one UPPERCASE letter."); return false; }
+        if (!hasDigit) { setMsg("Must have at least one digit (0-9)."); return false; }
+        setMsg("Strong Password"); return true;
+    }
+};
+
+class UsernameValidator : public Validator
+{
+private:
+    char* user = nullptr;
+public:
+    ~UsernameValidator() { delete[] user; }
+    void setUsername(const char* input)
+    {
+        delete[] user;
+        if (input) {
+            user = new char[strlen(input) + 1];
+            strncpy(user, input, strlen(input) + 1);
+        } else user = nullptr;
+        setMsg("");
+    }
+    bool validate() override
+    {
+        if (!user) { setMsg("Username is empty."); return false; }
+        int len = strlen(user);
+        if (len < 3) { setMsg("Username too short (min 3)."); return false; }
+        for (int i = 0; user[i] != '\0'; i++) {
+            char c = user[i];
+            bool isAlnum = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+            if (!isAlnum && c != '_') { setMsg("Only letters, numbers, and '_' allowed."); return false; }
+        }
+        setMsg("Valid Username"); return true;
+    }
+};
+
+// ── Validation Rules Helper (For Create Account) ──────────────────────────────
+
+class ValidationRules
+{
+public:
+    static bool hasMinimumLength(const QString& t, int n) { return t.length() >= n; }
+    static bool containsAtSymbol(const QString& t) { return t.contains('@'); }
+    static bool containsDotAfterAt(const QString& t) 
+    {
+        int at = t.indexOf('@');
+        return at != -1 && t.indexOf('.', at) != -1;
+    }
+    static bool hasNoSpaces(const QString& t) { return !t.contains(' '); }
+    static bool hasNoLeadingOrTrailingSpaces(const QString& t) { return t.trimmed() == t; }
+    static bool hasUppercase(const QString& t) 
+    {
+        for (QChar c : t) if (c.isUpper()) return true;
         return false;
     }
-
-    bool hasDigit()
+    static bool hasLowercase(const QString& t) 
     {
-        for (int index = 0; passwordText[index] != '\0'; index++)
-        {
-            if (CharUtils::isDigit(passwordText[index]))
-            {
-                return true;
-            }
-        }
+        for (QChar c : t) if (c.isLower()) return true;
         return false;
     }
-
-    bool hasSpecialCharacter()
+    static bool hasDigit(const QString& t) 
     {
-        const char* allowedSpecials = "!@#$%^&*";
+        for (QChar c : t) if (c.isDigit()) return true;
+        return false;
+    }
+    static bool hasSpecialCharacter(const QString& t) 
+    {
+        QString special = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+        for (QChar c : t) if (special.contains(c)) return true;
+        return false;
+    }
+};
 
-        for (int index = 0; passwordText[index] != '\0'; index++)
+// ── Real-time Validation Popup ─────────────────────────────────────────────────
+
+class ValidationPopup : public QWidget
+{
+    struct Rule {
+        QString text;
+        std::function<bool(const QString&)> check;
+        QLabel* label;
+    };
+
+    QVBoxLayout* layout;
+    QLabel* titleLabel;
+    QList<Rule> rules;
+    QLineEdit* attachedField = nullptr;
+
+    void updateRules(const QString& text)
+    {
+        bool allPassed = true;
+        for (auto& rule : rules)
         {
-            for (int specialIndex = 0; allowedSpecials[specialIndex] != '\0'; specialIndex++)
+            if (rule.check(text))
             {
-                if (passwordText[index] == allowedSpecials[specialIndex])
+                rule.label->setText("  \u2714  " + rule.text);
+                rule.label->setStyleSheet("font-family:'Courier New',monospace; font-size:14px; font-weight:bold; color:#44ff99; background:transparent; border:none;");
+            }
+            else
+            {
+                rule.label->setText("  \u2718  " + rule.text);
+                rule.label->setStyleSheet("font-family:'Courier New',monospace; font-size:14px; font-weight:bold; color:#ff5555; background:transparent; border:none;");
+                allPassed = false;
+            }
+        }
+        if (allPassed) hide();
+    }
+
+    void repositionNextTo(QLineEdit* field)
+    {
+        if (!field || !field->parentWidget()) return;
+        QPoint globalPos = field->parentWidget()->mapToGlobal(field->pos());
+        QPoint localPos = parentWidget() ? parentWidget()->mapFromGlobal(globalPos) : globalPos;
+        
+        int popupWidth = 300;
+        int popupHeight = sizeHint().height();
+        int x = localPos.x() - popupWidth - 10;
+        int y = localPos.y() + (field->height() / 2) - (popupHeight / 2);
+        
+        if (y < 5) y = 5;
+        if (x < 5) x = 5;
+        setGeometry(x, y, popupWidth, popupHeight);
+    }
+
+public:
+    explicit ValidationPopup(QWidget* parent, const QString& title = "Requirements") 
+        : QWidget(parent, Qt::Widget)
+    {
+        setAttribute(Qt::WA_TransparentForMouseEvents, false);
+        setStyleSheet("QWidget { background:rgba(3, 12, 35, 0.95); border:1px solid rgba(0, 234, 255, 0.35); border-radius:15px; }");
+        
+        layout = new QVBoxLayout(this);
+        layout->setContentsMargins(14, 10, 14, 10);
+        layout->setSpacing(4);
+        
+        titleLabel = new QLabel(title, this);
+        titleLabel->setStyleSheet("font-family:'Courier New',monospace; font-size:14px; font-weight:bold; letter-spacing:2px; color:#00dcff; background:transparent; border:none; padding-bottom:4px;");
+        layout->addWidget(titleLabel);
+        
+        hide();
+        raise();
+    }
+
+    void addRule(const QString& ruleText, std::function<bool(const QString&)> checker)
+    {
+        Rule r;
+        r.text = ruleText;
+        r.check = checker;
+        r.label = new QLabel("  \u2718  " + ruleText, this);
+        r.label->setStyleSheet("font-family:'Courier New',monospace; font-size:14px; font-weight:bold; color:#ff5555; background:transparent; border:none; padding:1px 0;");
+        layout->addWidget(r.label);
+        rules.append(r);
+        adjustSize();
+    }
+
+    void attachTo(QLineEdit* field)
+    {
+        attachedField = field;
+        QObject::connect(field, &QLineEdit::textChanged, this, [this](const QString& text) {
+            if (isVisible()) updateRules(text);
+        });
+        field->installEventFilter(this);
+    }
+
+protected:
+    bool eventFilter(QObject* obj, QEvent* event) override
+    {
+        if (obj == attachedField)
+        {
+            if (event->type() == QEvent::FocusIn)
+            {
+                repositionNextTo(attachedField);
+                updateRules(attachedField->text());
+                bool allPassed = true;
+                for (auto& rule : rules)
                 {
-                    return true;
+                    if (!rule.check(attachedField->text())) { allPassed = false; break; }
                 }
+                if (!allPassed) show();
+                raise();
             }
-        }
-        return false;
-    }
-
-    bool hasNoSpaces()
-    {
-        for (int index = 0; passwordText[index] != '\0'; index++)
-        {
-            if (passwordText[index] == ' ')
+            else if (event->type() == QEvent::FocusOut)
             {
-                return false;
+                hide();
             }
         }
-        return true;
+        return QWidget::eventFilter(obj, event);
     }
-
-    bool hasNoPipeCharacter()
-    {
-        for (int index = 0; passwordText[index] != '\0'; index++)
-        {
-            if (passwordText[index] == '|')
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    void clampStrengthScore()
-    {
-        if (strengthScore < 0)
-        {
-            strengthScore = 0;
-        }
-        if (strengthScore > 100)
-        {
-            strengthScore = 100;
-        }
-    }
-
-public:
-
-    PasswordValidator()
-    {
-        passwordText[0]      = '\0';
-        validationMessage[0] = '\0';
-        issuesCollected[0]   = '\0';
-        isPasswordValid      = false;
-        strengthScore        = 0;
-    }
-
-    void setPassword(const char* inputPassword)
-    {
-        CharUtils::copy(passwordText, inputPassword);
-        isPasswordValid      = false;
-        strengthScore        = 0;
-        validationMessage[0] = '\0';
-        issuesCollected[0]   = '\0';
-    }
-
-    bool validate()
-    {
-        strengthScore      = 0;
-        issuesCollected[0] = '\0';
-
-        if (!meetsMinimumLength())
-        {
-            char lengthMessage[64] = "At least 8 characters (Current: ";
-            char numberBuffer[16];
-            CharUtils::intToChars(numberBuffer, CharUtils::length(passwordText));
-            CharUtils::append(lengthMessage, numberBuffer);
-            CharUtils::append(lengthMessage, ")");
-            appendIssue(lengthMessage);
-        }
-        else
-        {
-            strengthScore += 25;
-        }
-
-        if (!hasUppercaseLetter())
-        {
-            appendIssue("Must contain an UPPERCASE letter");
-        }
-        else
-        {
-            strengthScore += 25;
-        }
-
-        if (!hasDigit())
-        {
-            appendIssue("Must contain a digit (0-9)");
-        }
-        else
-        {
-            strengthScore += 25;
-        }
-
-        if (!hasSpecialCharacter())
-        {
-            appendIssue("Must contain a special character (!@#$%^&*)");
-        }
-        else
-        {
-            strengthScore += 25;
-        }
-
-        if (!hasNoSpaces())
-        {
-            appendIssue("Must not contain spaces");
-            strengthScore -= 10;
-        }
-
-        if (!hasNoPipeCharacter())
-        {
-            appendIssue("Must not contain pipe character (|)");
-            strengthScore -= 10;
-        }
-
-        clampStrengthScore();
-
-        if (issuesCollected[0] != '\0')
-        {
-            CharUtils::copy(validationMessage, issuesCollected);
-            isPasswordValid = false;
-            return false;
-        }
-
-        CharUtils::copy(validationMessage, "Password is strong!");
-        isPasswordValid = true;
-        return true;
-    }
-
-    bool        getIsValid()       const { return isPasswordValid;   }
-    const char* getMessage()       const { return validationMessage; }
-    int         getStrengthScore() const { return strengthScore;     }
 };
 
-
-// ─────────────────────────────────────────
-//  USERNAME VALIDATOR CLASS
-// ─────────────────────────────────────────
-
-class UsernameValidator
-{
-private:
-
-    char usernameText[64];
-    char validationMessage[256];
-    bool isUsernameValid;
-
-    bool meetsMinimumLength()
-    {
-        return CharUtils::length(usernameText) >= 3;
-    }
-
-    bool doesNotExceedMaximumLength()
-    {
-        return CharUtils::length(usernameText) <= 20;
-    }
-
-    bool containsOnlyAllowedCharacters()
-    {
-        for (int index = 0; usernameText[index] != '\0'; index++)
-        {
-            char currentChar = usernameText[index];
-
-            bool isAllowed = CharUtils::isAlphanumeric(currentChar)
-                             || currentChar == '_';
-
-            if (!isAllowed)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-public:
-
-    UsernameValidator()
-    {
-        usernameText[0]      = '\0';
-        validationMessage[0] = '\0';
-        isUsernameValid      = false;
-    }
-
-    void setUsername(const char* inputUsername)
-    {
-        CharUtils::copy(usernameText, inputUsername);
-        isUsernameValid      = false;
-        validationMessage[0] = '\0';
-    }
-
-    bool validate()
-    {
-        if (usernameText[0] == '\0')
-        {
-            CharUtils::copy(validationMessage, "Username cannot be empty.");
-            isUsernameValid = false;
-            return false;
-        }
-
-        if (!meetsMinimumLength())
-        {
-            CharUtils::copy(validationMessage, "Username must be at least 3 characters.");
-            isUsernameValid = false;
-            return false;
-        }
-
-        if (!doesNotExceedMaximumLength())
-        {
-            CharUtils::copy(validationMessage, "Username must not exceed 20 characters.");
-            isUsernameValid = false;
-            return false;
-        }
-
-        if (!containsOnlyAllowedCharacters())
-        {
-            CharUtils::copy(validationMessage, "Username can only contain letters, digits, and underscores.");
-            isUsernameValid = false;
-            return false;
-        }
-
-        CharUtils::copy(validationMessage, "Username is valid.");
-        isUsernameValid = true;
-        return true;
-    }
-
-    bool        getIsValid() const { return isUsernameValid;   }
-    const char* getMessage() const { return validationMessage; }
-};
-
-#endif // VALIDITY_H
+#endif
